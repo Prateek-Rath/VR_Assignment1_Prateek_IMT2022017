@@ -1,0 +1,2 @@
+the first thing was to detect all coins via edge detection
+that means we should detect the edges and then have circles around each coin in the final image

@@ -7,7 +7,7 @@ from skimage import exposure, filters, color
 import numpy as np
 
 # path 
-path =  './coins2.jpeg'
+path =  './coins2_cropped.jpeg'
 
 # Reading an image in default mode 
 image = cv2.imread(path)
@@ -37,14 +37,39 @@ plt.show()
 plt.close()
 
 
-edge = cv2.Canny(gray_image, 200, 250)
+edges = cv2.Canny(gray_image, 200, 250)
 plt.axis('off')
 # plt.title('original')
 # plt.imshow(blur_gray_image,  cmap='gray') 
 plt.title('canny edges')
-plt.imshow(edge, cmap='gray') 
+plt.imshow(edges, cmap='gray') 
 plt.show()
 plt.close()
+
+
+contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+# plt.axis('off')
+# plt.title('contours')
+# plt.imshow(contours)
+# plt.show()
+# plt.close()
+
+# filter contours
+min_area = 2
+valid_contours = [contour for contour in contours if cv2.contourArea(contour) > min_area]
+number_of_coins = len(valid_contours)
+print(number_of_coins)
+
+
+# draw the contours on the image
+output_image = image.copy()
+cv2.drawContours(output_image, valid_contours, -1, (0, 255, 0), 1)  # the last two parameters are color and thickness
+
+plt.title('Contours around Coins')
+plt.imshow(output_image)
+plt.show()
+plt.close()
+
 
 
 # first we'll do a thresholding based segmentation
@@ -78,75 +103,66 @@ plt.close()
 # region-based segmentation considers the relationships between pixels to group them into coherent regions.
 # so we'll use region based segmentation and see what we get
 
-# first we'll use the watershed algorithm:
-# source: https://medium.com/softplus-publication/image-segmentation-part-1-7adcdab5b375
 
-# The key steps of the watershed algorithm are as follows:
+# region based segmentation
 
-#1. Gradient Computation: Calculate the gradient magnitude of the image, representing the local variations in intensity.
-# we'll use a sobel operator to calculate gradients
+# now we'll try clustering
+k= 10
+img_convert = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-scale = 1
-delta = 0
-ddepth = cv2.CV_16S # The "depth" of an image refers to the number of bits used to represent each pixel in the image.
-grad_x = cv2.Sobel(blur_gray_image, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-grad_y = cv2.Sobel(blur_gray_image, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-    
-abs_grad_x = cv2.convertScaleAbs(grad_x)
-abs_grad_y = cv2.convertScaleAbs(grad_y)
-    
+# Reshape the image into a 2D array of pixels and 3 color values (RGB)
+print('the image shape is', img_convert.shape)
+vectorized = img_convert.reshape((-1,3)) # this is 2 * 2
+print('the new shape is', vectorized.shape)
+vectorized = np.float32(vectorized)
 
-    
-grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
-    
-plt.imshow(cv2.cvtColor(grad, cv2.COLOR_BGR2RGB))
-plt.title('weighted gradient') 
+
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1.0)
+# the criteria is to use a change of less than epsilon and a max number of iterations
+
+
+
+# let's try and find the optimal k using elbow method
+# arr = []
+# k_range = []
+# for k in range(1, 10):
+#     ret, label, center = cv2.kmeans(vectorized, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
+#     center = np.uint8(center)
+#     res = center[label.flatten()]
+#     result_image = res.reshape((img_convert.shape))
+#     arr.append(ret)
+#     k_range.append(k)
+
+# plt.plot(k_range, arr, marker='o')
+# plt.title('Elbow method for optimal k')
+# plt.xlabel('Number of clusters (k)')
+# plt.ylabel('ret value from cv2.kmeans')
+# plt.show()
+
+# we choose k = 2 to separate the foreground from the background
+k= 2
+
+img_convert = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # opencv uses bgr but we want rgb
+
+# Reshape the image into a 2D array of pixels and 3 color values (RGB)
+vectorized = image.reshape((-1,3)) # this is 2 * 2
+vectorized = np.float32(vectorized)
+
+
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+
+# Apply KMeans
+ret, label, center = cv2.kmeans(vectorized, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
+center = np.uint8(center)
+res = center[label.flatten()]
+print(center)
+result_image = res.reshape((img_convert.shape))
+
+plt.imshow(result_image, cmap='viridis')
 plt.axis('off')
+plt.title('k means result')
 plt.show()
 plt.close()
 
 
-# to get the markers for the next step we need to view the histogram i.e. count of pixels vs pixel value
-plt.hist(blur_gray_image)
-plt.show()
-plt.close()
-
-#2. Marker Generation: Identify markers, which are seeds or starting points for the segmentation. 
-# These markers can be user-defined or automatically generated based on certain criteria.
-markers = np.zeros_like(grad)
-markers[blur_gray_image < 200] = 1
-markers[blur_gray_image > 240] = 2 
-# these are pretty unclear but I'm assuming that 200 and 230 work well for image2
-
-
-# print(type(markers))
-# print(markers)
-# plt.imshow(markers, cmap=plt.cm.nipy_spectral)
-plt.imshow(markers)
-plt.axis('off')
-plt.title(markers)
-plt.show()
-plt.close()
-
-
-
-
-
-#3. Flood Filling: Starting from the markers, perform a “flood filling” process that assigns each pixel to the nearest marker.
-print(type(image))
-print(type(markers))
-markers = np.int32(markers)
-seg = cv2.watershed(image, markers)
-plt.imshow(seg, cmap='gray')
-plt.axis('off')
-plt.title('watershed segmentation')
-plt.show()
-plt.close()
-
-#4. Segmentation: The flood-filled regions are then merged together to form the final segmented regions.
-
-# clearly watershed gives us shit results as compared to canny 
-
-
-# now clustering
-
+# all the above stuff we do is fine, but we need to 
