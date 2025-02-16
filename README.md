@@ -1,5 +1,4 @@
-Include a README file describing how to run your code, the methods chosen,
-results, and observations.
+The readme aims to provide basic information that supports others viewing this repository
 
 ## How to run the code:
 First install the following via conda or pip(with a virtual environment setup):
@@ -17,8 +16,8 @@ Note that the folders images_part1 and images_part2 contain the relevant images.
 
 ## Methods Chosen
 ### part1
-a. Canny Edge Detector
-b. K means and Watershed Algorithm
+a. Canny Edge Detector<br>
+b. K means and Watershed Algorithm<br>
 c. Function call(see code)
 
 ### part2
@@ -41,4 +40,31 @@ The choice of k also remains a question.
 In part2 the output is almost seamless except for a few black lines as the intersection points of the two images.
 
 
-For more detail refer to the report
+## Visual Outputs
+
+### images_part1
+- a_canny_outline.jpeg: canny edges outlining original image
+- a_canny.jpeg: white canny edges over a black background
+- b_kmeans.jpeg: kmeans output for k=2
+- b_segmented_outputs.txt: pixels under each label
+- coins.jpeg: input image
+- dist_transform.jpeg: distance transform image
+- markers.jpeg: image after first markings in watershed algorithm
+- segmented_output.jpeg: final output of watershed algorithm
+- sure_background.jpeg: the sure background in watershed algo
+- sure_foreground.jpeg: the sure foreground in watershed algo
+- unknown_area.jpeg: the dicey areas in watershed algo
+- watershed_contours.jpeg: contours around coins based on watershed output
+
+### images_part2
+- first_keypoints.jpeg: output of sift on first image
+- first.jpeg: first input image
+- matches.jpeg: matches between keypoint descriptors in 1st and second image
+- output.jpeg: final panaroma output
+- second_keypoints.jpeg: output of sift on second image
+- second.jpeg: second input image
+<br>
+The coin count is outputted via the function call in the code
+
+
+For more detail refer to the report.
