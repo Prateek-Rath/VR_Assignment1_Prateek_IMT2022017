@@ -5,7 +5,7 @@ import imutils
 import matplotlib.pyplot as plt
 
 
-# https://www.youtube.com/watch?v=Zs51cg4mb0k this directly uses the stitcher, but we'll try with sift and ransac
+showImages = True
 
 def get_image(path1):
     image = cv2.imread(path1)
@@ -23,12 +23,9 @@ def SIFT(img):
     kp, des = siftDetector.detectAndCompute(img, None)
     return kp, des
 
-left, left_rgb, left_gray = get_image('./images_b/first.jpeg')
+left, left_rgb, left_gray = get_image('./images_part2/first.jpeg')
 
-center, center_rgb, center_gray = get_image('./images_b/second.jpeg')
-
-# right, right_rgb, right_gray = get_image('./unstitchedImages/right.jpg')
-
+center, center_rgb, center_gray = get_image('./images_part2/second.jpeg')
 
 
 kp_left, des_left = SIFT(left_gray)
@@ -37,11 +34,16 @@ cv2.drawKeypoints(left_gray, kp_left, left_draw, color=(255, 0, 0), flags=cv2.DR
 
 
 # print(len(kp_left))
+
 plt.imshow(left_draw)
+plt.title('first keypoints')
 plt.axis('off')
-plt.savefig('./images_b/first_keypoints.jpeg')
-plt.show()
-plt.close()
+plt.savefig('./images_part2/first_keypoints.jpeg')
+if showImages:
+    plt.show()
+    plt.close()
+
+
 
 
 
@@ -49,12 +51,13 @@ kp_center, des_center = SIFT(center_gray)
 center_draw = center.copy()
 cv2.drawKeypoints(center_gray, kp_center, center_draw, color=(255, 0, 0), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
-
 plt.imshow(center_draw)
+plt.title('second keypoints')
 plt.axis('off')
-plt.savefig('./images_b/second_keypoints.jpeg')
-plt.show()
-plt.close()
+plt.savefig('./images_part2/second_keypoints.jpeg')
+if showImages:
+    plt.show()
+    plt.close()
 
 
 
@@ -73,11 +76,14 @@ print('the first match', matches[0].queryIdx, matches[0].trainIdx)
 
 # Draw first 50 matches.
 out = cv2.drawMatches(left_rgb, kp_left, center_rgb, kp_center, matches[:50], None, flags=2)
-plt.axis('off')
+
 plt.imshow(out)
+plt.axis('off')
 plt.title('first second matches')
-plt.savefig('./images_b/matches.jpeg')
-plt.show()
+plt.savefig('./images_part2/matches.jpeg')
+if showImages:
+    plt.show()
+    plt.close()
 
 
 src_pts = np.float32([kp_left[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2) # these are coordinates of points in the original plane
@@ -143,14 +149,18 @@ for i in range(warped_c.shape[0]):
             pixel_r = warped_c[i, j-1, :]
             pass
 
+
 # Stitch the result by slicing warped_l to match the size of warped_r
 stitch_image = warped_l[:warped_c.shape[0], :warped_c.shape[1], :]
+
+
 plt.imshow(stitch_image)
 plt.title('final output')
-plt.savefig('./images_b/output.jpeg')
 plt.axis('off')
-plt.show()
-plt.close()
+plt.savefig('./images_part2/output.jpeg')
+if showImages:
+    plt.show()
+    plt.close()
 
 
 
