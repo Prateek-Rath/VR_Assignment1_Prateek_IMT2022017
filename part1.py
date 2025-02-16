@@ -1,6 +1,5 @@
 import cv2 
 import matplotlib.pyplot as plt
-from skimage import exposure, filters, color
 import numpy as np
 
 

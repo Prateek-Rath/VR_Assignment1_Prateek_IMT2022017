@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import glob
-import imutils
 import matplotlib.pyplot as plt
 
 
