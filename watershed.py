@@ -1,79 +1,124 @@
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import pyplot as plt
 
+# Read the image
+img = cv2.imread('./easy.jpeg')
 
-image = cv2.imread('coins2_cropped.jpeg')
+# Convert from BGR to RGB
+img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-ksize = (5, 5)
-blur_gray_image = cv2.blur(gray_image, ksize)
-
-# first we'll use the watershed algorithm:
-# source: https://medium.com/softplus-publication/image-segmentation-part-1-7adcdab5b375
-
-# The key steps of the watershed algorithm are as follows:
-
-#1. Gradient Computation: Calculate the gradient magnitude of the image, representing the local variations in intensity.
-# we'll use a sobel operator to calculate gradients
-
-scale = 1
-delta = 0
-ddepth = cv2.CV_16S # The "depth" of an image refers to the number of bits used to represent each pixel in the image.
-grad_x = cv2.Sobel(blur_gray_image, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-grad_y = cv2.Sobel(blur_gray_image, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-    
-abs_grad_x = cv2.convertScaleAbs(grad_x)
-abs_grad_y = cv2.convertScaleAbs(grad_y)
-    
-
-    
-grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
-    
-plt.imshow(cv2.cvtColor(grad, cv2.COLOR_BGR2RGB))
-plt.title('weighted gradient') 
+ret, bin_img = cv2.threshold(gray,
+                             0, 255, 
+                             cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+plt.imshow(bin_img, cmap='gray')
 plt.axis('off')
+plt.title('binary image')
 plt.show()
 plt.close()
 
 
-# to get the markers for the next step we need to view the histogram i.e. count of pixels vs pixel value
-# plt.hist(blur_gray_image)
-# plt.show()
-# plt.close()
-
-#2. Marker Generation: Identify markers, which are seeds or starting points for the segmentation. 
-# These markers can be user-defined or automatically generated based on certain criteria.
-markers = np.zeros_like(grad)
-markers[blur_gray_image < 200] = 1
-markers[blur_gray_image > 240] = 2 
-# these are pretty unclear but I'm assuming that 200 and 230 work well for image2
+# noise removal
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # all 1s in 3*3
+bin_img = cv2.morphologyEx(bin_img, 
+                           cv2.MORPH_OPEN,
+                           kernel,
+                           iterations=2)
 
 
-# print(type(markers))
-# print(markers)
-# plt.imshow(markers, cmap=plt.cm.nipy_spectral)
-plt.imshow(markers)
+plt.imshow(bin_img, cmap='gray')
 plt.axis('off')
-plt.title(markers)
+plt.title('Binary Image with noise removed')
 plt.show()
 plt.close()
 
 
 
-
-
-#3. Flood Filling: Starting from the markers, perform a “flood filling” process that assigns each pixel to the nearest marker.
-# print(type(image))
-# print(type(markers))
-markers = np.int32(markers)
-seg = cv2.watershed(image, markers)
-plt.imshow(seg, cmap='gray')
+sure_bg = cv2.dilate(bin_img, kernel, iterations=3)
+plt.imshow(bin_img, cmap='gray')
 plt.axis('off')
-plt.title('watershed segmentation')
+plt.title('Sure background')
 plt.show()
 plt.close()
 
-#4. Segmentation: The flood-filled regions are then merged together to form the final segmented regions.
+dist = cv2.distanceTransform(bin_img, cv2.DIST_L2, 5)
+plt.imshow(dist, cmap='gray')
+plt.axis('off')
+plt.title('Distance Transform')
+plt.show()
+plt.close()
 
-# clearly watershed gives us bad results as compared to canny 
+ret, sure_fg = cv2.threshold(dist, 0.5 * dist.max(), 255, cv2.THRESH_BINARY)
+sure_fg = sure_fg.astype(np.uint8)  
+plt.imshow(sure_fg, cmap='gray')
+plt.axis('off')
+plt.title('Sure Foreground')
+plt.show()
+plt.close()
+
+
+unknown = cv2.subtract(sure_bg, sure_fg)
+plt.imshow(unknown, cmap='gray')
+plt.axis('off')
+plt.title('Unknown area')
+plt.show()
+plt.close()
+
+
+ret, markers = cv2.connectedComponents(sure_fg) # find connected components in foreground
+print('ret is', ret)
+print('type of markers is', type(markers))
+print('shape of markers is', markers.shape)
+ 
+# Add one to all labels so that background is not 0, but 1
+markers += 1
+# mark the region of unknown with zero
+markers[unknown == 255] = 0
+ 
+plt.imshow(markers, cmap='tab20b')
+plt.axis('off')
+plt.title('Markers')
+plt.show()
+plt.close()
+
+
+
+
+# Watershed Algorithm
+markers = cv2.watershed(img, markers)
+ 
+
+plt.imshow(markers, cmap='tab20b')
+plt.axis('off')
+plt.title('Markers after watershed')
+plt.show()
+plt.close()
+ 
+ 
+labels = np.unique(markers)
+ 
+coins = []
+for label in labels[2:]:  
+ 
+# Create a binary image in which only the area of the label is in the foreground 
+#and the rest of the image is in the background   
+    target = np.where(markers == label, 255, 0).astype(np.uint8)
+   
+  # Perform contour extraction on the created binary image
+    contours, hierarchy = cv2.findContours(
+        target, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    coins.append(contours[0])
+ 
+# Draw the outline
+img = cv2.drawContours(img, coins, -1, color=(0, 23, 223), thickness=2)
+
+
+plt.imshow(img, cmap='tab20b')
+plt.axis('off')
+plt.title('Contours formed')
+plt.show()
+plt.close()
+
+

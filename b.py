@@ -76,7 +76,7 @@ out = cv2.drawMatches(left_rgb, kp_left, center_rgb, kp_center, matches[:50], No
 plt.axis('off')
 plt.imshow(out)
 plt.title('first second matches')
-plt.savefig('matches.jpeg')
+plt.savefig('./images_b/matches.jpeg')
 plt.show()
 
 
