@@ -143,8 +143,8 @@ for i in range(warped_r.shape[0]):
         elif not np.array_equal(pixel_l, black) and not np.array_equal(pixel_r, black):
             warped_l[i, j, :] = (pixel_l + pixel_r) / 2
         else:
-            pixel_l = warped_l[i, j-1, :]
-            pixel_r = warped_r[i, j-1, :]
+            # warped_l[i, j, :] = [0, 0, 255] 
+            # warped_r[i, j, :] = [0, 0, 255]
             pass
 
 
@@ -160,10 +160,10 @@ if showImages:
     plt.show()
     plt.close()
 
-plt.imshow(warped_l)
-plt.title('Warped l')
-plt.show()
-plt.close()
+# plt.imshow(warped_l)
+# plt.title('Warped l')
+# plt.show()
+# plt.close()
 
 
 
