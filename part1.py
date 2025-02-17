@@ -16,7 +16,7 @@ import numpy as np
 #         plt.show()
 #         plt.close()
 
-showImages = True
+showImages = False
 
 
 # path 
