@@ -10,7 +10,7 @@ conda install numpy
 
 Then simply run code via "python3 part1.py" or "python3 part2.py"
 Note that the folders images_part1 and images_part2 contain the relevant images.
-- "coins.jpeg" is the input for part1, the outputs are "a_canny.jpeg" and "segmented_output.jpeg"
+- "one.jpeg" or "two.jpeg" or "coins.jpeg" or "coins2.jpeg" is the input for part1, the outputs are "a_canny.jpeg" and "segmented_output.jpeg"
 - "first.jpeg" and "second.jpeg" are the inputs for part2; the output is "output.jpeg"
 
 

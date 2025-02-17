@@ -20,7 +20,7 @@ showImages = False
 
 
 # path 
-path1 = './images_part1/coins.jpeg'
+path1 = './images_part1/one.jpeg'
 
 # Reading an image in default mode 
 image = cv2.imread(path1)
@@ -34,9 +34,10 @@ gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 # histogram equalization -- skip as it introduces artifacts in the image!!
 # gaussian blur
 
-ksize = (6, 6) 
+ksize = (10, 10) 
 # gray_image = cv2.equalizeHist(gray_image)
-blur_gray_image = cv2.blur(gray_image, ksize)
+# blur_gray_image = cv2.blur(gray_image, ksize)
+blur_gray_image = cv2.GaussianBlur(gray_image , (11,11) , 9)
 # blur_gray_image = cv2.equalizeHist(blur_gray_image) 
 # blur_gray_image = cv2.cvtColor(blur_image, cv2.COLOR_BGR2GRAY)
 
@@ -74,7 +75,7 @@ contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPRO
 # plt.close()
 
 # filter contours
-min_area = 15
+min_area = 250
 valid_contours = [contour for contour in contours if cv2.contourArea(contour) > min_area]
 number_of_coins = len(valid_contours)
 print('acc to canny contours, number of coins is', number_of_coins)
@@ -162,10 +163,15 @@ ret, bin_img = cv2.threshold(gray,
 
 # noise removal
 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # all 1s in 3*3
+# bin_img = cv2.morphologyEx(bin_img, 
+#                            cv2.MORPH_OPEN,
+#                            kernel,
+#                            iterations=10)
+
 bin_img = cv2.morphologyEx(bin_img, 
-                           cv2.MORPH_OPEN,
+                           cv2.MORPH_CLOSE,
                            kernel,
-                           iterations=10)
+                           iterations=3)
 
 
 sure_bg = cv2.dilate(bin_img, kernel, iterations=3)
@@ -298,7 +304,7 @@ def count_coins(path1):
     # noise removal
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # all 1s in 3*3
     bin_img = cv2.morphologyEx(bin_img, 
-                            cv2.MORPH_OPEN,
+                            cv2.MORPH_CLOSE,
                             kernel,
                             iterations=5)
 
@@ -321,9 +327,10 @@ def count_coins(path1):
     markers[unknown == 255] = 0
     markers = cv2.watershed(img, markers)
     labels = np.unique(markers)
-    # return len(labels)
+    
     coins = []
     for label in labels[2:]:  
+        # print('label is ', label)
         # Create a binary image in which only the area of the label is in the foreground 
         #and the rest of the image is in the background   
         target = np.where(markers == label, 255, 0).astype(np.uint8)
@@ -332,13 +339,43 @@ def count_coins(path1):
         contours, hierarchy = cv2.findContours(
             target, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        coins.append(contours[0])
-    return len(coins)
+        # coins.append(contours[0])
+        min_area=0
+        valid_contours = [contour for contour in contours if cv2.contourArea(contour) > min_area]
+        if len(valid_contours) > 0:
+            coins.append(valid_contours[0])
+    # return len(valid_contours)
+    return len(labels)-2 # background subtracted
 
 
 print('number of coins according to watershed is', count_coins(path1))
 
 
 
+def count_as_per_threshold(path1):
+    img = cv2.imread(path1)
+    img = cv2.resize(img , (640 , 800))
+    image_copy = img.copy()
+    img = cv2.GaussianBlur(img , (7 , 7) , 3)
 
+    gray = cv2.cvtColor(img , cv2.COLOR_BGR2GRAY)
+    ret , thresh = cv2.threshold(gray , 170 , 255 , cv2.THRESH_BINARY)
+    # ret , thresh = cv2.threshold(gray , 90 , 255 , cv2.THRESH_BINARY)
 
+    contours , _ = cv2.findContours(thresh , cv2.RETR_TREE , cv2.CHAIN_APPROX_NONE)
+    area = {}
+    for i in range(len(contours)):
+        cnt = contours[i]
+        ar = cv2.contourArea(cnt)
+        area[i] = ar
+    srt = sorted(area.items() , key = lambda x : x[1] , reverse = True)
+    results = np.array(srt).astype("int")
+    num = np.argwhere(results[: , 1] > 500).shape[0]
+
+    for i in range(1 , num):
+        image_copy = cv2.drawContours(image_copy , contours , results[i , 0] ,
+                                    (0 , 255 , 0) , 3)
+    return num-1
+    # cv2.imshow("final" , image_copy)
+
+print('number of coins according to thresholding is', count_as_per_threshold(path1))
