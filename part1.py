@@ -16,7 +16,7 @@ import numpy as np
 #         plt.show()
 #         plt.close()
 
-showImages = False
+showImages = True
 
 
 # path 
@@ -34,7 +34,7 @@ gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 # histogram equalization -- skip as it introduces artifacts in the image!!
 # gaussian blur
 
-ksize = (5, 5) 
+ksize = (6, 6) 
 # gray_image = cv2.equalizeHist(gray_image)
 blur_gray_image = cv2.blur(gray_image, ksize)
 # blur_gray_image = cv2.equalizeHist(blur_gray_image) 
@@ -74,10 +74,10 @@ contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPRO
 # plt.close()
 
 # filter contours
-min_area = 4
+min_area = 15
 valid_contours = [contour for contour in contours if cv2.contourArea(contour) > min_area]
 number_of_coins = len(valid_contours)
-# print('acc to canny contours, number of coins is', number_of_coins)
+print('acc to canny contours, number of coins is', number_of_coins)
 
 
 # draw the contours on the image
@@ -115,6 +115,7 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1.0)
 k= 2
 
 img_convert = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # opencv uses bgr but we want rgb
+# actually it doesn't matter as long as the features are the same
 
 # Reshape the image into a 2D array of pixels and 3 color values (RGB)
 vectorized = image.reshape((-1,3)) # this is 2 * 2
@@ -150,6 +151,8 @@ img = cv2.imread(path1)
 # Convert from BGR to RGB
 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# gray = cv2.equalizeHist(gray)
+# gray = cv2.normalize()
 
 ret, bin_img = cv2.threshold(gray,
                              0, 255, 
@@ -162,7 +165,7 @@ kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)) # all 1s in 3*3
 bin_img = cv2.morphologyEx(bin_img, 
                            cv2.MORPH_OPEN,
                            kernel,
-                           iterations=2)
+                           iterations=10)
 
 
 sure_bg = cv2.dilate(bin_img, kernel, iterations=3)
@@ -297,7 +300,7 @@ def count_coins(path1):
     bin_img = cv2.morphologyEx(bin_img, 
                             cv2.MORPH_OPEN,
                             kernel,
-                            iterations=2)
+                            iterations=5)
 
     sure_bg = cv2.dilate(bin_img, kernel, iterations=3)
 
@@ -318,7 +321,7 @@ def count_coins(path1):
     markers[unknown == 255] = 0
     markers = cv2.watershed(img, markers)
     labels = np.unique(markers)
-
+    # return len(labels)
     coins = []
     for label in labels[2:]:  
         # Create a binary image in which only the area of the label is in the foreground 
